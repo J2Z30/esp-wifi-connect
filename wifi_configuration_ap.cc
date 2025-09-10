@@ -175,8 +175,17 @@ void WifiConfigurationAp::StartAccessPoint()
     nvs_handle_t nvs;
     esp_err_t err = nvs_open("wifi", NVS_READONLY, &nvs);
     if (err == ESP_OK) {
+        // 读取蓝牙名称
+        char bluetooth_name[248 + 1] = { 0 };
+        size_t bluetooth_name_size = sizeof(bluetooth_name);
+        err = nvs_get_str(nvs, "bluetooth_name", bluetooth_name, &bluetooth_name_size);
+        if (err == ESP_OK) {
+            bluetooth_name_ = bluetooth_name;
+            ESP_LOGI(TAG, "Bluetooth name: %s", bluetooth_name_.c_str());
+        }
+        
         // 读取OTA URL
-        char ota_url[256] = {0};
+        char ota_url[256] = { 0 };
         size_t ota_url_size = sizeof(ota_url);
         err = nvs_get_str(nvs, "ota_url", ota_url, &ota_url_size);
         if (err == ESP_OK) {
@@ -509,6 +518,10 @@ void WifiConfigurationAp::StartWebServer()
             }
 
             // 添加配置项到JSON
+            if (!this_->bluetooth_name_.empty()) {
+                cJSON_AddStringToObject(json, "bluetooth_name", this_->bluetooth_name_.c_str());
+            }
+
             if (!this_->ota_url_.empty()) {
                 cJSON_AddStringToObject(json, "ota_url", this_->ota_url_.c_str());
             }
@@ -582,6 +595,15 @@ void WifiConfigurationAp::StartWebServer()
                 cJSON_Delete(json);
                 httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to open NVS");
                 return ESP_FAIL;
+            }
+            // 保存蓝牙名称
+            cJSON *bluetooth_name = cJSON_GetObjectItem(json, "bluetooth_name");
+            if (cJSON_IsString(bluetooth_name) && bluetooth_name->valuestring) {
+                this_->bluetooth_name_ = bluetooth_name->valuestring;
+                err = nvs_set_str(nvs, "bluetooth_name", this_->bluetooth_name_.c_str());
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to save Bluetooth name: %d", err);
+                }
             }
 
             // 保存OTA URL

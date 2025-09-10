@@ -175,7 +175,17 @@
                 <h3 data-lang="advanced_tab">高级选项</h3>
                 <p class="error" style="color: red; text-align: center;" id="advanced_error"></p>
                 
-                <p>
+                <p style="display: flex; align-items: center; gap: 10px;">
+                    <label for="bluetooth_name" data-lang="bluetooth_name">蓝牙名称:</label>
+                    <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+                        <input type="text" id="bluetooth_name" name="bluetooth_name" style="flex: 1;">
+                        <button type="button" onclick="clearBluetoothName()" 
+                                style="padding: 5px 10px; border: 1px solid #ccc; border-radius: 3px; 
+                                       background-color: #f0f0f0; cursor: pointer;">❌</button>
+                    </div>
+                </p>
+
+                <p style="display: flex; align-items: center; gap: 10px;">
                     <label for="ota_url" data-lang="ota_url">OTA服务器地址:</label>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <input type="text" id="ota_url" name="ota_url" style="flex: 1;">
@@ -241,7 +251,8 @@
                 max_tx_power: 'Wi-Fi 最大发射功率:',
                 remember_bssid: '连接 Wi-Fi 时记住 BSSID',
                 sleep_mode: '启用睡眠模式',
-                save: '保存'
+                save: '保存',
+                bluetooth_name: '蓝牙名称:'
             },
             'zh-TW': {
                 title: '網路設定',
@@ -256,7 +267,8 @@
                 max_tx_power: 'Wi-Fi 最大發射功率:',
                 remember_bssid: '連接 Wi-Fi 時記住 BSSID',
                 sleep_mode: '啟用睡眠模式',
-                save: '儲存'
+                save: '儲存',
+                bluetooth_name: '藍牙名稱:'
             },
             'en-US': {
                 title: 'Network Configuration',
@@ -271,7 +283,8 @@
                 max_tx_power: 'Wi-Fi Max TX Power:',
                 remember_bssid: 'Remember BSSID when connecting to Wi-Fi',
                 sleep_mode: 'Enable Sleep Mode',
-                save: 'Save'
+                save: 'Save',
+                bluetooth_name: 'Bluetooth Name:'
             },
             'ja-JP': {
                 title: 'ネットワーク設定',
@@ -286,7 +299,8 @@
                 max_tx_power: 'Wi-Fi最大送信電力:',
                 remember_bssid: 'Wi-Fi接続時にBSSIDを記憶する',
                 sleep_mode: 'スリープモードを有効にする',
-                save: '保存'
+                save: '保存',
+                bluetooth_name: 'Bluetooth 名称:'
             }
         };
 
@@ -526,6 +540,7 @@
             advancedError.textContent = '';
 
             const config = {
+                bluetooth_name: document.getElementById('bluetooth_name').value,
                 ota_url: document.getElementById('ota_url').value,
                 max_tx_power: parseInt(document.getElementById('max_tx_power').value),
                 remember_bssid: document.getElementById('remember_bssid').checked,
@@ -570,6 +585,9 @@
                 const response = await fetch('/advanced/config');
                 const data = await response.json();
                 
+                if (data.bluetooth_name) {
+                    document.getElementById('bluetooth_name').value = data.bluetooth_name;
+                }
                 if (data.ota_url) {
                     document.getElementById('ota_url').value = data.ota_url;
                 }
@@ -590,6 +608,11 @@
         // 清空OTA地址
         function clearOtaUrl() {
             document.getElementById('ota_url').value = '';
+        }
+
+        // 清空蓝牙名称
+        function clearBluetoothName() {
+            document.getElementById('bluetooth_name').value = '';
         }
     </script>
 </body>
