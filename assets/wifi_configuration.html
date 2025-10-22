@@ -153,7 +153,7 @@
                 <p class="error" style="color: red; text-align: center;" id="error">
                 </p>
                 <p>
-                    <label for="ssid">SSID:</label>
+                    <label for="ssid" data-lang="ssid_label">SSID:</label>
                     <input type="text" id="ssid" name="ssid" required>
                 </p>
                 <p>
@@ -242,6 +242,7 @@
                 title: '网络配置',
                 saved_wifi: '已保存的 Wi-Fi',
                 new_wifi: '新的 Wi-Fi',
+                ssid_label: 'SSID:',
                 password: '密码:',
                 connect: '连接',
                 select_wifi: '从下面列表选择 2.4G Wi-Fi:',
@@ -252,12 +253,22 @@
                 remember_bssid: '连接 Wi-Fi 时记住 BSSID',
                 sleep_mode: '启用睡眠模式',
                 save: '保存',
-                bluetooth_name: '蓝牙名称:'
+                bluetooth_name: '蓝牙名称:',
+                clear: '清除',
+                toast_saved: '配置已保存',
+                toast_connecting: '正在连接...',
+                error_connect_failed: '连接失败',
+                error_save_failed: '保存失败',
+                button_delete: '删除',
+                button_priority: '设为优先',
+                open_network: '开放网络',
+                secured_network: '加密网络'
             },
             'zh-TW': {
                 title: '網路設定',
                 saved_wifi: '已儲存的 Wi-Fi',
                 new_wifi: '新的 Wi-Fi',
+                ssid_label: 'SSID:',
                 password: '密碼:',
                 connect: '連接',
                 select_wifi: '從下方列表選擇 2.4G Wi-Fi:',
@@ -268,12 +279,22 @@
                 remember_bssid: '連接 Wi-Fi 時記住 BSSID',
                 sleep_mode: '啟用睡眠模式',
                 save: '儲存',
-                bluetooth_name: '藍牙名稱:'
+                bluetooth_name: '藍牙名稱:',
+                clear: '清除',
+                toast_saved: '設定已儲存',
+                toast_connecting: '正在連接...',
+                error_connect_failed: '連接失敗',
+                error_save_failed: '儲存失敗',
+                button_delete: '刪除',
+                button_priority: '設為優先',
+                open_network: '開放網路',
+                secured_network: '加密網路'
             },
             'en-US': {
                 title: 'Network Configuration',
                 saved_wifi: 'Saved Wi-Fi',
                 new_wifi: 'New Wi-Fi',
+                ssid_label: 'SSID:',
                 password: 'Password:',
                 connect: 'Connect',
                 select_wifi: 'Select an 2.4G Wi-Fi from the list below:',
@@ -284,12 +305,22 @@
                 remember_bssid: 'Remember BSSID when connecting to Wi-Fi',
                 sleep_mode: 'Enable Sleep Mode',
                 save: 'Save',
-                bluetooth_name: 'Bluetooth Name:'
+                bluetooth_name: 'Bluetooth Name:',
+                clear: 'Clear',
+                toast_saved: 'Configuration saved',
+                toast_connecting: 'Connecting...',
+                error_connect_failed: 'Connection failed',
+                error_save_failed: 'Save failed',
+                button_delete: 'Delete',
+                button_priority: 'Set Priority',
+                open_network: 'Open Network',
+                secured_network: 'Secured Network'
             },
             'ja-JP': {
                 title: 'ネットワーク設定',
                 saved_wifi: '保存済みのWi-Fi',
                 new_wifi: '新しいWi-Fi',
+                ssid_label: 'SSID:',
                 password: 'パスワード:',
                 connect: '接続',
                 select_wifi: '以下のリストから2.4G Wi-Fiを選択してください:',
@@ -300,31 +331,55 @@
                 remember_bssid: 'Wi-Fi接続時にBSSIDを記憶する',
                 sleep_mode: 'スリープモードを有効にする',
                 save: '保存',
-                bluetooth_name: 'Bluetooth 名称:'
+                bluetooth_name: 'Bluetooth名称:',
+                clear: 'クリア',
+                toast_saved: '設定が保存されました',
+                toast_connecting: '接続中...',
+                error_connect_failed: '接続に失敗しました',
+                error_save_failed: '保存に失敗しました',
+                button_delete: '削除',
+                button_priority: '優先設定',
+                open_network: 'オープンネットワーク',
+                secured_network: 'セキュアネットワーク'
             }
         };
 
+        // 当前语言
+        let currentLanguage = 'zh-CN';
+
         function changeLanguage() {
             const lang = document.getElementById('language').value;
+            
             // 检查语言值是否合法
             if (!translations[lang]) {
                 console.warn(`不支持的语言: ${lang}，默认使用中文`);
                 document.getElementById('language').value = 'zh-CN';
                 return changeLanguage();
             }
-            // Set page title
+            
+            currentLanguage = lang;
+            
+            // 设置页面标题
             document.title = translations[lang].title;
+            
+            // 更新所有带有 data-lang 属性的元素
             document.querySelectorAll('[data-lang]').forEach(element => {
                 const key = element.getAttribute('data-lang');
-                element.textContent = translations[lang][key];
+                if (translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                }
             });
+            
+            // 更新所有带有 data-lang-value 属性的元素
             document.querySelectorAll('[data-lang-value]').forEach(element => {
                 const key = element.getAttribute('data-lang-value');
-                element.value = translations[lang][key];
+                if (translations[lang][key]) {
+                    element.value = translations[lang][key];
+                }
             });
             // Update AP list text
             const apList = document.getElementById('ap_list');
-            if (apList.firstChild) {
+            if (apList.firstChild && apList.firstChild.nodeType === Node.TEXT_NODE) {
                 apList.firstChild.textContent = translations[lang].select_wifi;
             }
             // Save language preference
@@ -366,6 +421,10 @@
                 .then(response => response.json())
                 .then(data => {
                     loadSavedList();
+                })
+                .catch(error => {
+                    console.error('Error deleting item:', error);
+                    item.disabled = false;
                 });
         }
 
@@ -375,6 +434,10 @@
                 .then(response => response.json())
                 .then(data => {
                     loadSavedList();
+                })
+                .catch(error => {
+                    console.error('Error setting default item:', error);
+                    item.disabled = false;
                 });
         }
 
@@ -384,6 +447,9 @@
                 .then(response => response.json())
                 .then(data => {
                     renderSavedList(data);
+                })
+                .catch(error => {
+                    console.error('Error loading saved list:', error);
                 });
         }
 
@@ -396,7 +462,7 @@
             fetch('/scan')
                 .then(response => response.json())
                 .then(data => {
-                    const lang = document.getElementById('language').value;
+                    const lang = currentLanguage;
                     const apList = document.getElementById('ap_list');
                     apList.innerHTML = '<p>' + translations[lang].select_wifi + '</p>';
                     data.forEach(ap => {
@@ -404,6 +470,8 @@
                         const link = document.createElement('a');
                         link.href = '#';
                         link.textContent = ap.ssid + ' (' + ap.rssi + ' dBm)';
+                        
+                        // 根据网络类型添加图标
                         if (ap.authmode === 0) {
                             link.textContent += ' 🌐';
                         } else {
@@ -417,7 +485,7 @@
                     setTimeout(loadAPList, 5000);
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    console.error('Error loading AP list:', error);
                 });
         }
 
@@ -485,6 +553,9 @@
             event.preventDefault();
             button.disabled = true;
             error.textContent = '';
+            
+            // 显示连接中提示
+            showToast(translations[currentLanguage].toast_connecting);
 
             const ssidValue = ssid.value;
             const passwordValue = document.getElementById('password').value;
@@ -505,7 +576,7 @@
 
                 const data = await response.json();
                 if (!data.success) {
-                    throw new Error(data.error || '连接失败');
+                    throw new Error(data.error || translations[currentLanguage].error_connect_failed);
                 }
 
                 // 连接成功，跳转到完成页面
@@ -558,11 +629,11 @@
 
                 const data = await response.json();
                 if (!data.success) {
-                    throw new Error(data.error || '保存失败');
+                    throw new Error(data.error || translations[currentLanguage].error_save_failed);
                 }
 
                 advancedButton.disabled = false;
-                showToast('配置已保存');
+                showToast(translations[currentLanguage].toast_saved);
             } catch (err) {
                 advancedError.textContent = err.message;
                 advancedButton.disabled = false;

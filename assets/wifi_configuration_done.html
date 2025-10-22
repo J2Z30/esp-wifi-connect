@@ -45,21 +45,32 @@
         </svg>
         
         <div class="message">
-            <p>设备将在 <span id="countdown">3</span> 秒后重启</p>
-            <p>Device will restart in <span id="countdown-en">3</span> seconds</p>
+            <p id="message-text">设备将在 <span id="countdown">3</span> 秒后重启</p>
         </div>
     </div>
     
     <script>
+        // 从localStorage获取语言设置
+        const lang = localStorage.getItem('preferred_language') || 'zh-CN';
+        
+        // 语言文本映射
+        const translations = {
+            'zh-CN': '设备将在 <span id="countdown">3</span> 秒后重启',
+            'zh-TW': '設備將在 <span id="countdown">3</span> 秒後重啟',
+            'en-US': 'Device will restart in <span id="countdown">3</span> seconds',
+            'ja-JP': 'デバイスは<span id="countdown">3</span>秒後に再起動します'
+        };
+        
+        // 设置消息文本
+        document.getElementById('message-text').innerHTML = translations[lang] || translations['zh-CN'];
+        
         window.addEventListener('load', function() {
             let count = 3;
             const countdownElement = document.getElementById('countdown');
-            const countdownEnElement = document.getElementById('countdown-en');
             
             const timer = setInterval(function() {
                 count--;
                 countdownElement.textContent = count;
-                countdownEnElement.textContent = count;
                 
                 if (count <= 0) {
                     clearInterval(timer);
