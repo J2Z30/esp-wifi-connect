@@ -163,48 +163,65 @@ bool WifiStation::WaitForConnected(int timeout_ms) {
 
 void WifiStation::HandleScanResult() {
     uint16_t ap_num = 0;
+    esp_err_t ret = ESP_OK;
+    std::vector<wifi_ap_record_t> ap_records;
+
     esp_wifi_scan_get_ap_num(&ap_num);
-    wifi_ap_record_t *ap_records = (wifi_ap_record_t *)malloc(ap_num * sizeof(wifi_ap_record_t));
-    esp_wifi_scan_get_ap_records(&ap_num, ap_records);
+    if (0 == ap_num)
+        goto next_wifi_scan;
+
+    ap_records.resize(ap_num);
+
+    ret = esp_wifi_scan_get_ap_records(&ap_num, ap_records.data());
+    if (ESP_OK != ret)
+        goto next_wifi_scan;
+        
     // sort by rssi descending
-    std::sort(ap_records, ap_records + ap_num, [](const wifi_ap_record_t& a, const wifi_ap_record_t& b) {
+    std::sort(ap_records.begin(), ap_records.end(), [](const wifi_ap_record_t& a, const wifi_ap_record_t& b) {
         return a.rssi > b.rssi;
     });
 
-    auto& ssid_manager = SsidManager::GetInstance();
-    auto ssid_list = ssid_manager.GetSsidList();
-    for (int i = 0; i < ap_num; i++) {
-        auto ap_record = ap_records[i];
-        auto it = std::find_if(ssid_list.begin(), ssid_list.end(), [ap_record](const SsidItem& item) {
-            return strcmp((char *)ap_record.ssid, item.ssid.c_str()) == 0;
-        });
-        if (it != ssid_list.end()) {
-            ESP_LOGI(TAG, "Found AP: %s, BSSID: %02x:%02x:%02x:%02x:%02x:%02x, RSSI: %d, Channel: %d, Authmode: %d",
-                (char *)ap_record.ssid, 
-                ap_record.bssid[0], ap_record.bssid[1], ap_record.bssid[2],
-                ap_record.bssid[3], ap_record.bssid[4], ap_record.bssid[5],
-                ap_record.rssi, ap_record.primary, ap_record.authmode);
-            WifiApRecord record = {
-                .ssid = it->ssid,
-                .password = it->password,
-                .channel = ap_record.primary,
-                .authmode = ap_record.authmode,
-                .bssid = {0}
-            };
-            memcpy(record.bssid, ap_record.bssid, 6);
-            connect_queue_.push_back(record);
+    {
+        bool found_ap = false;
+        auto& ssid_manager = SsidManager::GetInstance();
+        auto ssid_list = ssid_manager.GetSsidList();
+        connect_queue_.clear();
+
+        for (const auto& item : ssid_list) {
+            for (int i = 0; i < ap_num; i++) {
+                if (strcmp((const char *)ap_records[i].ssid, item.ssid.c_str()) == 0) {
+                    ESP_LOGI(TAG, "Priority Match Found[%d]: %s, RSSI: %d", i, item.ssid.c_str(), ap_records[i].rssi);
+                    
+                    WifiApRecord record = {
+                        .ssid = item.ssid,
+                        .password = item.password,
+                        .channel = ap_records[i].primary,
+                        .authmode = ap_records[i].authmode
+                    };
+                    memcpy(record.bssid, ap_records[i].bssid, 6);
+                    
+                    connect_queue_.push_back(record);
+                    found_ap = true;
+                    break;
+                }
+            }
+
+            if (found_ap) {
+                ESP_LOGI(TAG, "Found highest priority AP available, stopping search.");
+                break;
+            }
         }
     }
-    free(ap_records);
 
-    if (connect_queue_.empty()) {
-        ESP_LOGI(TAG, "No AP found, next scan in %d seconds", scan_current_interval_microseconds_ / 1000 / 1000);
-        esp_timer_start_once(timer_handle_, scan_current_interval_microseconds_);
-        UpdateScanInterval();
+    if (!connect_queue_.empty()) {
+        StartConnect();
         return;
     }
 
-    StartConnect();
+next_wifi_scan:
+    ESP_LOGI(TAG, "No AP found, next scan in %d seconds", scan_current_interval_microseconds_ / 1000 / 1000);
+    esp_timer_start_once(timer_handle_, scan_current_interval_microseconds_);
+    UpdateScanInterval();
 }
 
 void WifiStation::StartConnect() {
